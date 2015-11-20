@@ -8,3 +8,19 @@ enwik8
 *.txt
 
 *.tiff
+
+*.swp
+
+An Investigation of Recurrent Neural Network Architectures for Statistical Parametric Speech Synthesis.pdf
+
+CWRNN.pdf
+
+logs_4001
+
+logs_5
+
+results/model13500 - 2.0 64 1024 1e-4
+
+results/model8000
+
+results/fresh/doc.py
