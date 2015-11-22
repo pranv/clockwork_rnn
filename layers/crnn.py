@@ -23,8 +23,8 @@ def make_schedule(clocks, n):
 
 
 class CRNN(Layer):
-	def __init__(self, dinput, nstates, doutput, clock_rates, full_recurrence=False, learn_state=True):
-		nclocks = len(clock_rates)
+	def __init__(self, dinput, nstates, doutput, clock_periods, full_recurrence=False, learn_state=True):
+		nclocks = len(clock_periods)
 		
 		Wi = random(nclocks * nstates, dinput + 1)
 		Wh = random(nclocks * nstates, nclocks * nstates + 1)
@@ -43,15 +43,26 @@ class CRNN(Layer):
 		# mask to make Wh a block upper triangle matrix
 		utri_mask = recurrent_mask(nclocks, nstates)
 		if not full_recurrence:
-			Wh[:,:-1] = utri_mask * Wh[:,:-1]
+			Wh[:,:-1] *= utri_mask
 
 		# column vector to selectively activate block rows based on time
-		schedules = make_schedule(clock_rates, nstates)
+		schedules = make_schedule(clock_periods, nstates)
 		schedules = np.array(schedules).reshape(-1, 1)
 
-		self.full_recurrence = full_recurrence
 		# store it all
-		self.dinput = dinput; self.nstates = nstates; self.doutput = doutput; self.clock_rates = clock_rates; self.nclocks = nclocks; self.Wi = Wi; self.Wh = Wh; self.Wo = Wo; self.H_0 = H_0; self.utri_mask = utri_mask; self.schedules = schedules; self.learn_state = learn_state;
+		self.dinput = dinput
+		self.nstates = nstates
+		self.doutput = doutput
+		self.clock_periods = clock_periods
+		self.nclocks = nclocks
+		self.Wi = Wi
+		self.Wh = Wh
+		self.Wo = Wo
+		self.H_0 = H_0
+		self.utri_mask = utri_mask
+		self.schedules = schedules
+		self.full_recurrence = full_recurrence
+		self.learn_state = learn_state
 
 		self.forget()
 
@@ -70,7 +81,7 @@ class CRNN(Layer):
 		H_p = H_start
 
 		for t in xrange(T):
-			activate = ((t % self.schedules) == 0)
+			activate = (((t + 1) % self.schedules) == 0)
 			
 			input = np.concatenate([X[t], np.ones((1, B))], axis=0)
 			i_h = np.dot(self.Wi, input)
@@ -115,7 +126,7 @@ class CRNN(Layer):
 		dX = np.zeros((T, self.n, B))
 
 		for t in reversed(xrange(T)):
-			activate = ((t % self.schedules) == 0)
+			activate = (((t + 1) % self.schedules) == 0)
 
 			input = self.inputs[t]; _H_p = self._H_ps[t]; H1= self.H1s[t]; H = self.Hs[t]; _H = self._Hs[t]; Y = self.Ys[t];
 
@@ -136,7 +147,7 @@ class CRNN(Layer):
 			dH_p += np.dot(self.Wh.T, dH1)[:-1]
 
 			dWi += np.dot(dH1, input.T)
-			#dX[t] = np.dot(self.Wi.T, di_h)[:-1]
+			dX[t] = np.dot(self.Wi.T, dH1)[:-1]
 
 		# mask grads, so zeros grads for lower triangle
 		if not self.full_recurrence:
