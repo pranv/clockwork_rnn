@@ -11,7 +11,7 @@ import pickle
 import matplotlib.pyplot as plt
 plt.ion()
 
-experiment_name = 'full_interconnections vs symmetric vs normal'
+experiment_name = 'full_interconnections vs symmetric vs normal RmsProp'
 
 all_clocks = [[1, 4, 16], [1, 1, 4, 4, 16, 16], [1, 4, 16]]
 vocabulary_size = 65
@@ -73,7 +73,7 @@ for clocks in all_clocks:
 	 Linear(output, noutputs), Softmax()]
 	W = extract_weights(model)
 	
-	optimizer = Adam(W, dW, learning_rate, momentum=momentum)
+	optimizer = RmsProp(W, dW, learning_rate, momentum=momentum)
 
 	id = 'clocks=' + str(clocks) + ';' + 'vocabulary_size=' + str(vocabulary_size) + ';' + 'states=' + str(states) + ';' + 'output=' + str(output) + ';' + 'ninputs=' + str(ninputs) + ';' + 'noutputs=' + str(noutputs) + ';' + 'sequence_length=' + str(sequence_length) + ';' + 'batch_size=' + str(batch_size) + ';' + 'learning_rate=' + str(learning_rate) + ';' + 'nepochs=' + str(nepochs) + ';' + 'niterations=' + str(niterations) + ';' + 'momentum=' + str(momentum) + ';' + 'forget_every=' + str(forget_every) + ';' + 'gradient_clip=' + str(gradient_clip) + ';' + 'sample_every=' + str(sample_every) + ';' + 'save_every=' + str(save_every) + ';' + 'plot_every=' + str(plot_every) + ';' + 'full_recurrence=' + str(full_recurrence) + ';' + 'learn_state=' + str(learn_state) + ';' + 'anneal=' + str(anneal) + ';' + 'dynamic_forgetting=' + str(dynamic_forgetting) + ';'
  
