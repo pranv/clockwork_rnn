@@ -11,9 +11,9 @@ import pickle
 import matplotlib.pyplot as plt
 plt.ion()
 
-experiment_name = ''
+experiment_name = 'full_interconnections vs symmetric vs normal'
 
-all_clocks = [[1, 4, 16], [1, 4, 16, 4, 1], [1, 4, 16]]
+all_clocks = [[1, 4, 16], [1, 1, 4, 4, 16, 16], [1, 4, 16]]
 vocabulary_size = 65
 states = 128 			# per clock
 output = 1024			# for all clocks
@@ -24,14 +24,14 @@ sequence_length = 128
 
 batch_size = 4
 learning_rate = 5e-4
-nepochs = 1
-niterations = 40 * nepochs
+nepochs = 3
+niterations = 4000 * nepochs
 momentum = 0.9
 
 forget_every = 3
 gradient_clip = (-1.0, 1.0)
 
-sample_every = 10000 	#never
+sample_every = 10000 	# never
 save_every = niterations
 plot_every = 100
 
@@ -66,7 +66,7 @@ def dW(W):
 
 for clocks in all_clocks:
 	if clocks is all_clocks[-1]:
-		states *= 2
+		states *= 4
 		full_recurrence = False
 
 	model = [CRNN(ninputs, states, output, clocks, full_recurrence=full_recurrence, learn_state=learn_state),\
@@ -130,9 +130,12 @@ for clocks in all_clocks:
 	plt.draw()
 
 
-plt.savefig(experiment_name)
+plt.savefig(experiment_name, dpi=1000)
 
 print 'serializing logs... '
-f = open('logs/' + str(experiment_name), 'w')
+f = open('logs_' + str(experiment_name), 'w')
 pickle.dump(logs, f)
 f.close()
+
+for i in range(10):
+	raw_input()
