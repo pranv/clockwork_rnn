@@ -11,10 +11,11 @@ import pickle
 import matplotlib.pyplot as plt
 plt.ion()
 
+experiment_name = ''
 
-all_clocks = [[1, 4, 16, 4, 1], [1, 1, 1, 1, 1]]
+all_clocks = [[1, 4, 16], [1, 4, 16, 4, 1], [1, 4, 16]]
 vocabulary_size = 65
-states = 128 		# per clock
+states = 128 			# per clock
 output = 1024			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
@@ -22,15 +23,15 @@ noutputs = vocabulary_size
 sequence_length = 128
 
 batch_size = 4
-learning_rate = 3e-4
+learning_rate = 5e-4
 nepochs = 1
-niterations = 4000 * nepochs
-momentum = 0.0
+niterations = 40 * nepochs
+momentum = 0.9
 
 forget_every = 3
-gradient_clip = (-10.0, 10.0)
+gradient_clip = (-1.0, 1.0)
 
-sample_every = 1000
+sample_every = 10000 	#never
 save_every = niterations
 plot_every = 100
 
@@ -56,32 +57,35 @@ def dW(W):
 	gradient_norm = (gradients ** 2).sum() / gradients.size
 	clipped_gradient_norm = (clipped_gradients ** 2).sum() / gradients.size
 	
-	logs['loss' + str(clocks)].append(loss)
-	logs['smooth_loss' + str(clocks)].append(loss * 0.01 + logs['smooth_loss' + str(clocks)][-1] * 0.99)
-	logs['gradient_norm' + str(clocks)].append(gradient_norm) 
-	logs['clipped_gradient_norm' + str(clocks)].append(clipped_gradient_norm) 
+	logs['loss' + id].append(loss)
+	logs['smooth_loss' + id].append(loss * 0.01 + logs['smooth_loss' + id][-1] * 0.99)
+	logs['gradient_norm' + id].append(gradient_norm) 
+	logs['clipped_gradient_norm' + id].append(clipped_gradient_norm) 
 	
 	return clipped_gradients
 
 for clocks in all_clocks:
-	if clocks == all_clocks[-1]:
+	if clocks is all_clocks[-1]:
 		states *= 2
 		full_recurrence = False
 
 	model = [CRNN(ninputs, states, output, clocks, full_recurrence=full_recurrence, learn_state=learn_state),\
 	 Linear(output, noutputs), Softmax()]
 	W = extract_weights(model)
+	
 	optimizer = Adam(W, dW, learning_rate, momentum=momentum)
 
-	logs['loss' + str(clocks)] = []
-	logs['smooth_loss' + str(clocks)] = [4.17]
-	logs['gradient_norm' + str(clocks)] = []
-	logs['clipped_gradient_norm' + str(clocks)] = []
+	id = 'clocks=' + str(clocks) + ';' + 'vocabulary_size=' + str(vocabulary_size) + ';' + 'states=' + str(states) + ';' + 'output=' + str(output) + ';' + 'ninputs=' + str(ninputs) + ';' + 'noutputs=' + str(noutputs) + ';' + 'sequence_length=' + str(sequence_length) + ';' + 'batch_size=' + str(batch_size) + ';' + 'learning_rate=' + str(learning_rate) + ';' + 'nepochs=' + str(nepochs) + ';' + 'niterations=' + str(niterations) + ';' + 'momentum=' + str(momentum) + ';' + 'forget_every=' + str(forget_every) + ';' + 'gradient_clip=' + str(gradient_clip) + ';' + 'sample_every=' + str(sample_every) + ';' + 'save_every=' + str(save_every) + ';' + 'plot_every=' + str(plot_every) + ';' + 'full_recurrence=' + str(full_recurrence) + ';' + 'learn_state=' + str(learn_state) + ';' + 'anneal=' + str(anneal) + ';' + 'dynamic_forgetting=' + str(dynamic_forgetting) + ';'
+ 
+	logs['loss' + id] = []
+	logs['smooth_loss' + id] = [4.17]
+	logs['gradient_norm' + id] = []
+	logs['clipped_gradient_norm' + id] = []
 
 	for i in optimizer:
 		print i['n_iter'], '\t',
-		print logs['loss' + str(clocks)][-1], '\t',
-		print logs['gradient_norm' + str(clocks)][-1]
+		print logs['loss' + id][-1], '\t',
+		print logs['gradient_norm' + id][-1]
 
 		if dynamic_forgetting:
 			if i['n_iter'] % forget_every == 0:
@@ -121,33 +125,14 @@ for clocks in all_clocks:
 		if i['n_iter'] > niterations:
 			break
 
-	plt.plot(logs['smooth_loss' + str(clocks)], label=str(clocks)  + '  ' + str(states) + 'full_recurrence: ' + str(full_recurrence))
+	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence))
 	plt.legend()
 	plt.draw()
 
 
-
+plt.savefig(experiment_name)
 
 print 'serializing logs... '
-f = open('logs_' + str(i['n_iter']), 'w')
+f = open('logs/' + str(experiment_name), 'w')
 pickle.dump(logs, f)
 f.close()
-
-raw_input()
-raw_input()
-raw_input()
-
-raw_input()
-raw_input()
-raw_input()
-raw_input()
-raw_input()
-raw_input()
-raw_input()
-raw_input()
-
-raw_input()
-raw_input()
-raw_input()
-
-raw_input()
