@@ -125,7 +125,7 @@ for clocks in all_clocks:
 		if i['n_iter'] > niterations:
 			break
 
-	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence))
+	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence) + '  RmsProp')
 	plt.legend()
 	plt.draw()
 
