@@ -193,7 +193,7 @@ class CRNN(Layer):
 		return np.concatenate([dWi, dWh, dWo, dH_0])
 
 	def clear_grads(self):
-		dWi *= 0
-		dWh *= 0
-		dWo *= 0
-		dH_0 *= 0
+		self.dWi *= 0
+		self.dWh *= 0
+		self.dWo *= 0
+		self.dH_0 *= 0
