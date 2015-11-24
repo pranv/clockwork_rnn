@@ -11,11 +11,11 @@ import pickle
 import matplotlib.pyplot as plt
 plt.ion()
 
-experiment_name = 'full_interconnections vs symmetric vs normal RmsProp'
+experiment_name = 'full_interconnections vs symmetric vs normal 2'
 
-all_clocks = [[1, 4, 16], [1, 1, 4, 4, 16, 16], [1, 4, 16]]
+all_clocks = [[1, 4, 16], [1, 4, 16], [1, 4, 16, 4, 1], [1]]
 vocabulary_size = 65
-states = 128 			# per clock
+#states = 256			# per clock
 output = 1024			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
@@ -24,8 +24,7 @@ sequence_length = 128
 
 batch_size = 4
 learning_rate = 5e-4
-nepochs = 3
-niterations = 4000 * nepochs
+niterations = 12000
 momentum = 0.9
 
 forget_every = 3
@@ -35,7 +34,7 @@ sample_every = 10000 	# never
 save_every = niterations
 plot_every = 100
 
-full_recurrence = True
+#full_recurrence = True
 learn_state = True
 
 anneal = False
@@ -44,6 +43,7 @@ dynamic_forgetting = False
 logs = {}
 
 data = Corpus('tinyshakesphere.txt', sequence_length, batch_size)
+
 
 def dW(W):
 	load_weights(model, W)
@@ -64,18 +64,33 @@ def dW(W):
 	
 	return clipped_gradients
 
-for clocks in all_clocks:
-	if clocks is all_clocks[-1]:
-		states *= 4
+
+for clocks in reversed(all_clocks):
+	
+	if clocks is all_clocks[0]:
+		states = 256
+		full_recurrence = True
+
+	if clocks is all_clocks[1]:
+		states = 256
 		full_recurrence = False
+
+	if clocks is all_clocks[2]:
+		states = 256
+		full_recurrence = False
+
+	if clocks is all_clocks[3]:
+		states = 768
+		full_recurrence = True
 
 	model = [CRNN(ninputs, states, output, clocks, full_recurrence=full_recurrence, learn_state=learn_state),\
 	 Linear(output, noutputs), Softmax()]
 	W = extract_weights(model)
+	print W.size
 	
-	optimizer = RmsProp(W, dW, learning_rate, momentum=momentum)
+	optimizer = Adam(W, dW, learning_rate, momentum=momentum)
 
-	id = 'clocks=' + str(clocks) + ';' + 'vocabulary_size=' + str(vocabulary_size) + ';' + 'states=' + str(states) + ';' + 'output=' + str(output) + ';' + 'ninputs=' + str(ninputs) + ';' + 'noutputs=' + str(noutputs) + ';' + 'sequence_length=' + str(sequence_length) + ';' + 'batch_size=' + str(batch_size) + ';' + 'learning_rate=' + str(learning_rate) + ';' + 'nepochs=' + str(nepochs) + ';' + 'niterations=' + str(niterations) + ';' + 'momentum=' + str(momentum) + ';' + 'forget_every=' + str(forget_every) + ';' + 'gradient_clip=' + str(gradient_clip) + ';' + 'sample_every=' + str(sample_every) + ';' + 'save_every=' + str(save_every) + ';' + 'plot_every=' + str(plot_every) + ';' + 'full_recurrence=' + str(full_recurrence) + ';' + 'learn_state=' + str(learn_state) + ';' + 'anneal=' + str(anneal) + ';' + 'dynamic_forgetting=' + str(dynamic_forgetting) + ';'
+	id = 'clocks=' + str(clocks) + ';' + 'vocabulary_size=' + str(vocabulary_size) + ';' + 'states=' + str(states) + ';' + 'output=' + str(output) + ';' + 'ninputs=' + str(ninputs) + ';' + 'noutputs=' + str(noutputs) + ';' + 'sequence_length=' + str(sequence_length) + ';' + 'batch_size=' + str(batch_size) + ';' + 'learning_rate=' + str(learning_rate) + ';' + 'niterations=' + str(niterations) + ';' + 'momentum=' + str(momentum) + ';' + 'forget_every=' + str(forget_every) + ';' + 'gradient_clip=' + str(gradient_clip) + ';' + 'sample_every=' + str(sample_every) + ';' + 'save_every=' + str(save_every) + ';' + 'plot_every=' + str(plot_every) + ';' + 'full_recurrence=' + str(full_recurrence) + ';' + 'learn_state=' + str(learn_state) + ';' + 'anneal=' + str(anneal) + ';' + 'dynamic_forgetting=' + str(dynamic_forgetting) + ';'
  
 	logs['loss' + id] = []
 	logs['smooth_loss' + id] = [4.17]
@@ -125,7 +140,7 @@ for clocks in all_clocks:
 		if i['n_iter'] > niterations:
 			break
 
-	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence) + '  RmsProp')
+	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence) + '  Adam')
 	plt.legend()
 	plt.draw()
 
@@ -133,9 +148,10 @@ for clocks in all_clocks:
 plt.savefig(experiment_name, dpi=1000)
 
 print 'serializing logs... '
-f = open('logs_' + str(experiment_name), 'w')
+f = open('logs_' + str(experiment_name) + '.logs', 'w')
 pickle.dump(logs, f)
 f.close()
 
-for i in range(10):
+for i in range(100):
 	raw_input()
+
