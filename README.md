@@ -26,7 +26,18 @@ Hence, we it seems like we should have full duplex interconnections between modu
 	* Fibonacci (Virahanka)
 	* Different Exponential Series
 	* Random
+* **Dropout**
+* **Other Fancy Activations**
 	
 #### Later Experiments:
 Learn the periods.
-Initial Idea: Let the RNN emit a gaussian distribution over time periods.
+Initial Idea: Let the RNN emit a gaussian distribution over time periods. This requires a huge recurrent matrix.
+
+
+
+## Results
+
+Initial Experiments have shown that:
+
+1. The connection mechanism suggested in the paper, which is from slower to faster works slightly better than full duplex connections, when the number of parameters is kept constant.
+2. Adam is a vastly better optimizer than vanilla RmsProp. Need to test against Graves 2013 RmsProp.
