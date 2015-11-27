@@ -41,3 +41,73 @@ Initial Experiments have shown that:
 
 1. The connection mechanism suggested in the paper, which is from slower to faster works slightly better than full duplex connections, when the number of parameters is kept constant.
 2. Adam is a vastly better optimizer than vanilla RmsProp. Need to test against Graves 2013 RmsProp.
+
+
+After about a 4 days of continous training, the final observations are:
+
+<table>
+	<tr>
+		<td><b>Clock Periods</b></td>
+		<td><b>Number of States (per module)</b></td>
+		<td><b>Full Interconnections</b></td>
+		<td><b>Effective Number of Recurrent Parameters</b></td>
+		<td><b>Avg. Test Loss</b></td>
+		<td><b>Remarks</b></td>
+	</tr>
+	<tr>
+		<td>[ 1 ] </td>
+		<td>768</td>
+		<td>True</td>
+		<td>589,824</td>
+		<td>1.40</td>
+		<td>Baseline SRN</td>
+	</tr>
+	<tr>
+		<td>[ 1, 4, 16, 4, 1 ] </td>
+		<td>256</td>
+		<td>False</td>
+		<td>819,200</td>
+		<td>1.30</td>
+		<td>Simple Symmetric</td>
+	</tr>
+	<tr>
+		<td>[ 1, 1, 4, 4, 16, 16]</td>
+		<td>128</td>
+		<td>True</td>
+		<td>294,912</td>
+		<td>1.50</td>
+		<td>This is ideal</td>
+	</tr>
+	<tr>
+		<td>[ 1, 4, 16]</td>
+		<td>256</td>
+		<td>False</td>
+		<td>294,912</td>
+		<td>1.45</td>
+		<td>Original Paper Proposal</td>
+	</tr>
+		<tr>
+		<td>[ 1, 4, 16]</td>
+		<td>128</td>
+		<td>True</td>
+		<td>147,456</td>
+		<td>1.55</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td>[ 1, 4, 16]</td>
+		<td>256</td>
+		<td>True</td>
+		<td>589,824</td>
+		<td>1.55</td>
+		<td>This is ideal</td>
+	</tr>	
+	<tr>
+		<td>[ 1, 4, 16]</td>
+		<td>512</td>
+		<td>False</td>
+		<td>1,179,648</td>
+		<td>1.40</td>
+		<td>Unstable and Slow</td>
+	</tr>	
+</table>
