@@ -1,6 +1,6 @@
 import numpy as np
 
-from crnn1 import CRNN1 as CRNN
+from crnn_i import CRNN_I as CRNN
 
 def test_CRNN():
 	
