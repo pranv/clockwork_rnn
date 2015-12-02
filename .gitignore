@@ -1,17 +1,11 @@
 
 *.pyc
 
-enwik8
-
-*.png
-
-*.txt
-
-*.tiff
-
 *.swp
 
-*.logs
+data/
 
-*.pdf
+references/
+
+results/
 

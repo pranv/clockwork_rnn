@@ -11,38 +11,38 @@ import pickle
 import matplotlib.pyplot as plt
 plt.ion()
 
-experiment_name = 'full_interconnections vs symmetric vs normal 2'
+experiment_name = 'CRNN_I'
 
-all_clocks = [[1, 4, 16], [1, 4, 16], [1, 4, 16, 4, 1], [1]]
-vocabulary_size = 65
-#states = 256			# per clock
+all_clocks = [[1, 1, 2, 3, 5, 8, 13, 22, 13, 8, 5, 3, 2, 1, 1]]
+vocabulary_size = 205
+states = 32			# per clock
 output = 1024			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
 
-sequence_length = 128
+sequence_length = 256
 
-batch_size = 4
-learning_rate = 5e-4
-niterations = 12000
+batch_size = 16
+learning_rate = 1e-3
+niterations = 20000
 momentum = 0.9
 
-forget_every = 3
+forget_every = 1
 gradient_clip = (-1.0, 1.0)
 
-sample_every = 10000 	# never
-save_every = niterations
+sample_every = 1000
+save_every = 1000
 plot_every = 100
 
-#full_recurrence = True
+full_recurrence = False
 learn_state = True
 
 anneal = False
-dynamic_forgetting = False
+dynamic_forgetting = True
 
 logs = {}
 
-data = Corpus('tinyshakesphere.txt', sequence_length, batch_size)
+data = Corpus('enwik8.txt', sequence_length, batch_size)
 
 
 def dW(W):
@@ -65,28 +65,11 @@ def dW(W):
 	return clipped_gradients
 
 
-for clocks in reversed(all_clocks):
-	
-	if clocks is all_clocks[0]:
-		states = 256
-		full_recurrence = True
+for clocks in all_clocks:
 
-	if clocks is all_clocks[1]:
-		states = 256
-		full_recurrence = False
-
-	if clocks is all_clocks[2]:
-		states = 256
-		full_recurrence = False
-
-	if clocks is all_clocks[3]:
-		states = 768
-		full_recurrence = True
-
-	model = [CRNN(ninputs, states, output, clocks, full_recurrence=full_recurrence, learn_state=learn_state),\
+	model = [CRNN_I(ninputs, states, output, clocks, full_recurrence=full_recurrence, learn_state=learn_state),\
 	 Linear(output, noutputs), Softmax()]
 	W = extract_weights(model)
-	print W.size
 	
 	optimizer = Adam(W, dW, learning_rate, momentum=momentum)
 
@@ -98,19 +81,24 @@ for clocks in reversed(all_clocks):
 	logs['clipped_gradient_norm' + id] = []
 
 	for i in optimizer:
+
+		if i['n_iter'] > niterations:
+			break
+
 		print i['n_iter'], '\t',
 		print logs['loss' + id][-1], '\t',
 		print logs['gradient_norm' + id][-1]
 
+		if i['n_iter'] % forget_every == 0:
+			forget(model)
+
 		if dynamic_forgetting:
-			if i['n_iter'] % forget_every == 0:
-				forget(model)
-				if i['n_iter'] > 100:
-					forget_every = 10
-				if i['n_iter'] > 1000:
-					forget_every = 100
-				if i['n_iter'] > 10000:
-					forget_every = 1000
+			if i['n_iter'] > 100:
+				forget_every = 10
+			if i['n_iter'] > 1000:
+				forget_every = 100
+			if i['n_iter'] > 10000:
+				forget_every = 1000
 
 		if i['n_iter'] % sample_every == 0:
 			forget(model)
@@ -132,26 +120,33 @@ for clocks in reversed(all_clocks):
 			forget(model)
 
 		if anneal:
-			if i['n_iter'] > 1000:
-				optimizer.step_rate = learning_rate / 2
-			elif i['n_iter'] > 2000:
-				optimizer.step_rate = learning_rate / 4
+			if i['n_iter'] > 3000:
+				optimizer.step_rate *= 0.1
+			elif i['n_iter'] > 6000:
+				optimizer.step_rate *=  0.1
 		
-		if i['n_iter'] > niterations:
-			break
+		if i['n_iter'] % save_every == 0:
+			print 'serializing model... '
+			f = open(str(experiment_name) + '_iter_' + str(i['n_iter']) +'.model', 'w')
+			pickle.dump(model, f)
+			f.close()
 
-	plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states) + ' full_recurrence: ' + str(full_recurrence) + '  Adam')
-	plt.legend()
-	plt.draw()
+		if i['n_iter'] % plot_every == 0:
+			plt.clf()
+			plt.plot(logs['smooth_loss' + id], label='clocks: ' +  str(clocks)  + ' states: ' + str(states))
+			plt.legend()
+			plt.draw()
 
-
-plt.savefig(experiment_name, dpi=1000)
 
 print 'serializing logs... '
-f = open('logs_' + str(experiment_name) + '.logs', 'w')
+f = open(str(experiment_name) + '.logs', 'w')
 pickle.dump(logs, f)
+f.close()
+
+print 'serializing model... '
+f = open(str(experiment_name) + '_final.model', 'w')
+pickle.dump(model, f)
 f.close()
 
 for i in range(100):
 	raw_input()
-
