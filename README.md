@@ -50,7 +50,7 @@ After about a 4 days of continous training, the final observations are:
 		<td><b>Clock Periods</b></td>
 		<td><b>Number of States (per module)</b></td>
 		<td><b>Full Interconnections</b></td>
-		<td><b>Effective Number of Recurrent Parameters</b></td>
+		<td><b>Effective Size of Recurrent Weight Matrix</b></td>
 		<td><b>Avg. Test Loss</b></td>
 		<td><b>Remarks</b></td>
 	</tr>
@@ -109,5 +109,13 @@ After about a 4 days of continous training, the final observations are:
 		<td>1,179,648</td>
 		<td>1.40</td>
 		<td>Unstable and Slow</td>
+	</tr>
+	<tr>
+		<td>[1, 1, 2, 3, 5, 8, 13, 22, 13, 8, 5, 3, 2, 1, 1]</td>
+		<td>64</td>
+		<td>False</td>
+		<td>460,800</td>
+		<td>0.90</td>
+		<td>doutput = 2048. 3M parameters overall. Overfits</td>
 	</tr>	
 </table>
