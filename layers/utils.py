@@ -3,8 +3,9 @@ import numpy as np
 
 def random(*shape):
 	'''
+		Gaussian with sigma = 0.01 and mu = 0.0
 	'''
-	return np.random.randn(*shape) * 0.01
+	return np.random.randn(*shape)
 
 
 def glorotize(W):
