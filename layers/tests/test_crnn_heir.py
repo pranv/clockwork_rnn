@@ -1,6 +1,6 @@
 import numpy as np
 
-from fast_crnn import CRNN
+from crnn_heir import CRNN_HEIR as CRNN
 
 def test_CRNN():
 	
