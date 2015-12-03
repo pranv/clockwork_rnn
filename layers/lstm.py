@@ -4,14 +4,14 @@ from base import Layer
 from utils import random, glorotize, orthogonalize
 
 class LSTM(Layer):
-	def __init__(self, dinput, nstates, fbias=1.0):
+	def __init__(self, dinput, nstates, fbias=5.0):
 		W = random(nstates * 4, dinput + nstates + 1)
 		W = glorotize(W)
-		W[0 * nstates: 1 * nstates, dinput:] = orthogonalize(W[0 * nstates: 1 * nstates, dinput:])
-		W[1 * nstates: 2 * nstates, dinput:] = orthogonalize(W[1 * nstates: 2 * nstates, dinput:])
-		W[2 * nstates: 3 * nstates, dinput:] = orthogonalize(W[2 * nstates: 3 * nstates, dinput:])
-		W[3 * nstates: 4 * nstates, dinput:] = orthogonalize(W[3 * nstates: 4 * nstates, dinput:])
-		W[:, -1] = 0 	# initialize all biases to zero
+		W[0 * nstates: 1 * nstates, dinput:-1] = orthogonalize(W[0 * nstates: 1 * nstates, dinput:-1])
+		W[1 * nstates: 2 * nstates, dinput:-1] = orthogonalize(W[1 * nstates: 2 * nstates, dinput:-1])
+		W[2 * nstates: 3 * nstates, dinput:-1] = orthogonalize(W[2 * nstates: 3 * nstates, dinput:-1])
+		W[3 * nstates: 4 * nstates, dinput:-1] = orthogonalize(W[3 * nstates: 4 * nstates, dinput:])
+		W[:, -1] = 0 								# initialize all biases to zero
 		W[2 * nstates : 3 * nstates] = fbias		# fancy forget bias
 		self.W = W
 

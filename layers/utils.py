@@ -2,7 +2,9 @@ import numpy as np
 
 
 def random(*shape):
-	return np.random.randn(*shape)
+	'''
+	'''
+	return np.random.randn(*shape) * 0.01
 
 
 def glorotize(W):
@@ -12,5 +14,5 @@ def glorotize(W):
 
 
 def orthogonalize(W):
-	W[:, :-1], _, _ = np.linalg.svd(W[:, :-1])
+	W, _, _ = np.linalg.svd(W)
 	return W
