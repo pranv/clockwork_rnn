@@ -16,14 +16,14 @@ plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
 plt.clf()
 
-experiment_name = 'symmetric'
+experiment_name = 'crnn_i_initial'
 
 text_file = 'enwik8.txt'
 
-periods = [1, 2, 3, 5, 8, 13, 8, 5, 3, 2, 1]
+periods = [1, 2, 3, 5, 8, 13]
 vocabulary_size = 205
-states = 32			# per clock
-output = 1024		# for all clocks
+states = 32				# per clock
+output = 512			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
 
@@ -90,7 +90,7 @@ logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
 model = [
-			CRNN(ninputs, states, output, periods, full_recurrence, learn_state),
+			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
  			Linear(output, noutputs),
  			Softmax()
  		]
@@ -138,9 +138,9 @@ for i in optimizer:
 		forget(model)
 
 	if anneal:
-		if i['n_iter'] > 3000:
+		if i['n_iter'] > 2000:
 			optimizer.step_rate *= 0.1
-		elif i['n_iter'] > 6000:
+		elif i['n_iter'] > 3000:
 			optimizer.step_rate *=  0.1
 	
 	if i['n_iter'] % save_every == 0:
