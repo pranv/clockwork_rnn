@@ -5,6 +5,7 @@ def random(*shape):
 	'''
 		Gaussian with sigma = 0.01 and mu = 0.0
 	'''
+	np.random.seed(np.random.randint(1213))
 	return np.random.randn(*shape)
 
 
