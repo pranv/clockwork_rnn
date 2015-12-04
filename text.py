@@ -25,7 +25,7 @@ class UnOneHot(object):
 			chars += self.to_c[i]
 		return chars
 
-class Corpus(object):
+class loader(object):
 	def __init__(self, filename, sequence_length, batch_size):
 		f = open(filename, 'r')
 		lines = f.readlines()

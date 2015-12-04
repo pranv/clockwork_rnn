@@ -16,7 +16,6 @@ def recurrent_mask(nclocks, nstates):
 		one_blocks = np.ones((nstates, nstates * (c)))
 		matrix.append(np.concatenate([zero_blocks, one_blocks], axis=1))
 	mask = np.concatenate(matrix, axis=0)
-	print mask
 	return mask
 
 

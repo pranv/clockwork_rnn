@@ -1,9 +1,9 @@
 import numpy as np
 
 from layers import *
-from network import *
+from network_tools import *
 from climin import RmsProp, Adam
-from text import Corpus
+from text import loader
 
 import time
 import pickle
@@ -16,13 +16,13 @@ plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
 plt.clf()
 
-experiment_name = 'crnn_i_initial'
+experiment_name = 'lstm_baseline'
 
 text_file = 'enwik8.txt'
 
-periods = [1, 2, 3, 5, 8, 13]
+periods = [1, 2, 4, 8, 16]
 vocabulary_size = 205
-states = 32				# per clock
+states = 512			# per clock
 output = 512			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
@@ -31,7 +31,7 @@ sequence_length = 128
 
 batch_size = 16
 learning_rate = 1e-3
-niterations = 4000
+niterations = 20000
 momentum = 0.9
 
 forget_every = 1
@@ -42,14 +42,14 @@ save_every = 1000
 plot_every = 100
 
 full_recurrence = False
-learn_state = True
+learn_state = False
 
 anneal = False
 dynamic_forgetting = False
 
 logs = {}
 
-data = Corpus('data/' + text_file, sequence_length, batch_size)
+data = loader('data/' + text_file, sequence_length, batch_size)
 
 
 def dW(W):
@@ -79,7 +79,7 @@ def dW(W):
 os.system('mkdir results/' + experiment_name)
 path = 'results/' + experiment_name + '/'
 
-config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'ninputs = ' + str(ninputs) + '\n' + 'noutputs = ' + str(noutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'logs = ' + str(logs) + '\n' + 'text = ' + str(text_file) + '\n'
+config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'ninputs = ' + str(ninputs) + '\n' + 'noutputs = ' + str(noutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'text = ' + str(text_file) + '\n'
 f = open(path + 'config.txt', 'w')
 f.write(config)
 f.close()
@@ -89,8 +89,15 @@ logs['smooth_loss'] = [np.log(vocabulary_size)]
 logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
+#model = [
+#			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
+# 			Linear(output, noutputs),
+# 			Softmax()
+# 		]
+
 model = [
-			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
+			LSTM(ninputs, states),
+			LSTM(states, output),
  			Linear(output, noutputs),
  			Softmax()
  		]
