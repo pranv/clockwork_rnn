@@ -64,7 +64,7 @@ class CRNN_HEIR(Layer):
 
 		nclocks = len(clock_periods)
 		
-		Wi = random(nstates, dinput + 1)
+		Wi = random(nclocks * nstates, dinput + 1)
 		Wh = random(nclocks * nstates, nclocks * nstates + 1)
 		Wo = random(doutput, nclocks * nstates + 1)
 		
@@ -135,8 +135,7 @@ class CRNN_HEIR(Layer):
 			_H_prev = np.concatenate([H_prev, np.ones((1, B))], axis=0) 
 			h_h = np.dot(Wh, _H_prev)	# hidden to hidden
 
-			h_new = h_h
-			h_new[:nclocks] += i_h
+			h_new = i_h + h_h
 			H_new = np.tanh(h_new)
 			
 			H = active * H_new + (1 - active) * H_prev
@@ -162,9 +161,8 @@ class CRNN_HEIR(Layer):
 		self.H_news = H_news
 		self.Hs = Hs
 		self._Hs = _Hs
-		self.Ys = Ys
+		self.Ys = Ys	
 		self.H_last = H
-
 		self.T = T
 		self.n = n
 		self.B = T
@@ -214,17 +212,13 @@ class CRNN_HEIR(Layer):
 
 			dH_new = (1.0 - H_new ** 2) * dH_new
 
+			dWh += np.dot(dH_new, _H_prev.T)
+			dH_prev += np.dot(Wh.T, dH_new)[:-1]
 
-			di_h = dH_new[:nclocks]
-			dh_h = dH_new
-
-			dWh += np.dot(dh_h, _H_prev.T)
-			dH_prev += np.dot(Wh.T, dh_h)[:-1]
-	
-			dWi += np.dot(di_h, input.T)
+			dWi += np.dot(dH_new, input.T)
 
 			if not self.first_layer:
-				dX[t] = np.dot(Wi.T, di_h)[:-1]
+				dX[t] = np.dot(Wi.T, dH_new)[:-1]
 
 		# mask grads, so zeros grads for lower triangle
 		if not self.full_recurrence:
