@@ -16,13 +16,15 @@ plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
 plt.clf()
 
-experiment_name = 'lstm_baseline'
+np.random.seed(np.random.randint(1))
+
+experiment_name = 'crnn_baseline'
 
 text_file = 'enwik8.txt'
 
 periods = [1, 2, 4, 8, 16]
 vocabulary_size = 205
-states = 512			# per clock
+states = 32				# per clock
 output = 512			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
@@ -34,7 +36,7 @@ learning_rate = 1e-3
 niterations = 20000
 momentum = 0.9
 
-forget_every = 1
+forget_every = 100
 gradient_clip = (-1.0, 1.0)
 
 sample_every = 1000
@@ -42,7 +44,7 @@ save_every = 1000
 plot_every = 100
 
 full_recurrence = False
-learn_state = False
+learn_state = True
 
 anneal = False
 dynamic_forgetting = False
@@ -53,18 +55,15 @@ data = loader('data/' + text_file, sequence_length, batch_size)
 
 
 def dW(W):
-	load_weights(model, W)
-	
+	load_weights(model, W)	
 	input, target = data.fetch()
-	
 	output = forward(model, input)
-	
 	backward(model, target)
 	
 	gradients = extract_grads(model)
 	clipped_gradients = np.clip(gradients, gradient_clip[0], gradient_clip[1])
 
-	loss = -1.0 * np.sum(target * np.log(output + 2e-23)) / (sequence_length * batch_size)
+	loss = -1.0 * np.sum(target * np.log(output)) / (sequence_length * batch_size)
 	gradient_norm = (gradients ** 2).sum() / gradients.size
 	clipped_gradient_norm = (clipped_gradients ** 2).sum() / gradients.size
 	
@@ -89,22 +88,15 @@ logs['smooth_loss'] = [np.log(vocabulary_size)]
 logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
-#model = [
-#			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
-# 			Linear(output, noutputs),
-# 			Softmax()
-# 		]
-
 model = [
-			LSTM(ninputs, states),
-			LSTM(states, output),
+			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
  			Linear(output, noutputs),
  			Softmax()
  		]
 
 W = extract_weights(model)
 
-optimizer = Adam(W, dW, learning_rate, momentum=momentum)
+optimizer = Adam(W, dW, 1e-3)
 
 for i in optimizer:
 	if i['n_iter'] > niterations:
@@ -163,7 +155,7 @@ for i in optimizer:
 
 
 print 'serializing logs... '
-f = open(path + '.logs', 'w')
+f = open(path + 'logs.logs', 'w')
 pickle.dump(logs, f)
 f.close()
 
