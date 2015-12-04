@@ -4,7 +4,7 @@ from base import Layer
 from utils import random, glorotize, orthogonalize
 
 class LSTM(Layer):
-	def __init__(self, dinput, nstates, fbias=5.0):
+	def __init__(self, dinput, nstates, fbias=0.0):
 		W = random(nstates * 4, dinput + nstates + 1)
 		W = glorotize(W)
 		W[0 * nstates: 1 * nstates, dinput:-1] = orthogonalize(W[0 * nstates: 1 * nstates, dinput:-1])
@@ -12,7 +12,7 @@ class LSTM(Layer):
 		W[2 * nstates: 3 * nstates, dinput:-1] = orthogonalize(W[2 * nstates: 3 * nstates, dinput:-1])
 		W[3 * nstates: 4 * nstates, dinput:-1] = orthogonalize(W[3 * nstates: 4 * nstates, dinput:])
 		W[:, -1] = 0 								# initialize all biases to zero
-		W[2 * nstates : 3 * nstates] = fbias		# fancy forget bias
+		W[2 * nstates : 3 * nstates, -1] = fbias		# fancy forget bias
 		self.W = W
 
 		self.c_0 = np.zeros((nstates, 1))
@@ -148,13 +148,8 @@ class LSTM(Layer):
 
 		self.dX = dX
 		self.dW = dW
-		self.dc_0 = dc_p
-		self.dY_0 = dY_p
-
-		# clear all 
-		self.acc_V, self.acc_S, self.acc_z, self.acc_i, self.acc_f, self.acc_o, \
-			self.acc_Z, self.acc_I, self.acc_F, self.acc_O, self.acc_c, self.acc_C, self.acc_Y \
-				= {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+		self.dc_0 = dc_p.sum(axis=1, keepdims=True)
+		self.dY_0 = dY_p.sum(axis=1, keepdims=True)
 
 		return dX
 
@@ -177,12 +172,11 @@ class LSTM(Layer):
 		self.W = W.reshape(self.W.shape)
 		self.c_0 = c.reshape(self.c_0.shape)
 		self.Y_0 = Y.reshape(self.Y_0.shape)
-		self.forget()
 
 	def get_grads(self):
 		dW = self.dW.flatten()
-		dc_0 = self.dc_0.sum(axis=1, keepdims=True).flatten()
-		dY_0 = self.dY_0.sum(axis=1, keepdims=True).flatten()
+		dc_0 = self.dc_0.flatten()
+		dY_0 = self.dY_0.flatten()
 		return np.concatenate([dW, dc_0, dY_0])
 
 	def clear_grads(self):
