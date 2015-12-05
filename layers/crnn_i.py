@@ -212,7 +212,6 @@ class CRNN_I(Layer):
 
 			dH_new = (1.0 - H_new ** 2) * dH_new
 
-
 			di_h = dH_new[:nstates]
 			dh_h = dH_new
 
