@@ -1,6 +1,6 @@
 # Clockwork RNNs 
 
-## UPDATED: SEE TOWARDS THE END OF THE PAGE
+#### UPDATED: SEE TOWARDS THE END OF THE PAGE
 
 Clockwork RNNs are a set of simple RNNs that run at different clock speeds but share their hidden states and produce a common output. 
 
@@ -37,14 +37,14 @@ Upon studying the gradient norm, it was stupid to start the master clock at 1, i
 
 ## Modified CWRNN
 
-It is now apparent that CWRNN is actually Hierarchical Subsampling Networks. And when the blocks of the recurrent weight matrix form a perticular pattern, they are almost the same thing as seq2seq. 
-With this logic, I have written `crnn_htm.py`
+It is now apparent that CWRNN is actually Hierarchical Subsampling Networks  (HSNs). And when the blocks of the recurrent weight matrix form a perticular pattern, they are almost the same thing as seq2seq. 
+With this logic, I have written `crnn_htm.py`. Note - I believe that in if the modules are [1, 2, 4, ...., 64, 1] and  the recurrent weight matrix is the transpose of what is suggested in the paper, then only the first module should take in inputs, and the last module should produce output. This makes it identical to HSNs. 
 
 Here are 2 images that capture the long term properties of original cwrnn vs the modified one:
+Both plots are Gradient Norm vs Time Step: 
 
-PLOTS: Gradient Norm vs Time Step 
+Modified - HSN like:
 ![new](https://cloud.githubusercontent.com/assets/8753078/11609470/456733fe-9bad-11e5-87e4-cdf2d609d896.png)
-This is what I have modified
 
 Original implementation gives:
 ![old](https://cloud.githubusercontent.com/assets/8753078/11609493/c3c490c0-9bad-11e5-86ef-eb4f8164bc64.png)
