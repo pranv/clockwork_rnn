@@ -35,6 +35,8 @@ Hence, we it seems like we should have full duplex interconnections between modu
 
 Upon studying the gradient norm, it was stupid to start the master clock at 1, instead of 0. Thus all experiments from the past 12 days or more - according to the Github commit is useless.
 
+Current best: Single Layer Clockwork RNN Symmetric Clock Rates, with about 1.4 million parameters, without dropout gave test CE loss of about **1.4**, which equals to about **2 BPC**. Current state of the art, which I belive is the Grid LSTM paper from Google DeepMind reported BPC of **1.47**
+
 ## Modified CWRNN
 
 It is now apparent that CWRNN is actually Hierarchical Subsampling Networks  (HSNs). And when the blocks of the recurrent weight matrix form a perticular pattern, they are almost the same thing as seq2seq. 
