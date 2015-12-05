@@ -1,10 +1,12 @@
-# Clockwork RNNs
+# Clockwork RNNs 
+
+## UPDATED: SEE TOWARDS THE END OF THE PAGE
 
 Clockwork RNNs are a set of simple RNNs that run at different clock speeds but share their hidden states and produce a common output. 
 
 Suppose there are `n` RNNs or modules `{RNN1, . . ., RNNn}` and each RNN is assigned a clock period `T ∈ { T1 , . . . , Tn }`. RNNi is active only if the current time step `t % Ti == 0` Each RNN is internally fully interconnected, but the recurrent connections from RNNj to RNNi exists only if the period Ti is smaller than period Tj. 
 
-
+## Observations and Modifications
 Intuitively, the slower RNNs (the ones with larger periods) act as shortcut pathways for information and gradients between large number of timesteps. The faster RNNs (the ones with shorter periods) handle short term, local operations. 
 
 Taking the above logic further, we can imagine that, for a given task, the slower RNN comes in every once in a while, puts in the instructions and then hibernates till it is again active. The slower modules take these instructions and operate on them at every timestep to get the desired output. CWRNN works really well for this setting the of simple generation (which is the premise of the 1st experiment that the CWRNN was trained on in the original paper Section 4.1).
@@ -17,26 +19,34 @@ Hence, we it seems like we should have full duplex interconnections between modu
 
 #### Extensions:
 
-* **Odd - Even Modules**: The fastest modules (usually ones with period 1) are seeing everything. Instead that  can be split up into two modules that are active alternatively. This should help with vanishing gradients. These two modules should be atleast mutually fully interconnected. This can be further extended by having a set of 4 modules such that modules take turns one after that other to be active.
-* **Remove the connection from input to slower modules completely**. If the logic stated above is right, then there is little use letting slower modules see any input at all.
-* **Multiple RNNs at same speed**: We can have multiple RNNs that are operating at the same speed, and there is a blurry selection between them, then this could be something like hierarchial RNNs.
+* **Round Robin RNNs**: The fastest modules (usually ones with period 1) are seeing everything. Instead that  can be split up into more modules, such that modules take turns one after that other to be active. This should help with vanishing gradients. **RESULTS**: USELESS
 * **Dynamic Forgetting during training**: Forget hidden state very frequently during inital stages of training, but extend the period of forgetting over time.
-* **Various Clock Periods**: 
+* **Various Clock Periods**: RESULTS: Not much difference. Exponential series of 2 is fine. 
 	* Symmetric: Has given best results so far, within 		the original CWRNN model. Maybe due to the reason 		stated above.
 	* Fibonacci (Virahanka)
 	* Different Exponential Series
 	* Random
-* **Dropout**
+* **Dropout**: RESULTS: Helps, but slows down training a lot
 * **Other Fancy Activations**
 	
-#### Later Experiments:
-Learn the periods.
-Initial Idea: Let the RNN emit a gaussian distribution over time periods. This requires a huge recurrent matrix.
-
-
-
 ## Results
 
-Initial Experiments have shown that:
+~~Initial Experiments have shown that:~~
 
 Upon studying the gradient norm, it was stupid to start the master clock at 1, instead of 0. Thus all experiments from the past 12 days or more - according to the Github commit is useless.
+
+## Modified CWRNN
+
+It is now apparent that CWRNN is actually Hierarchical Subsampling Networks. And when the blocks of the recurrent weight matrix form a perticular pattern, they are almost the same thing as seq2seq. 
+With this logic, I have written `crnn_htm.py`
+
+Here are 2 images that capture the long term properties of original cwrnn vs the modified one:
+
+PLOTS: Gradient Norm vs Time Step 
+![new](https://cloud.githubusercontent.com/assets/8753078/11609470/456733fe-9bad-11e5-87e4-cdf2d609d896.png)
+This is what I have modified
+
+Original implementation gives:
+![old](https://cloud.githubusercontent.com/assets/8753078/11609493/c3c490c0-9bad-11e5-86ef-eb4f8164bc64.png)
+
+
