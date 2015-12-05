@@ -126,7 +126,7 @@ class CRNN_HEIR(Layer):
 			H_prev = np.concatenate([self.H_0] * B, axis=1)
 
 		for t in xrange(T):
-			active = (((t + 1) % self.schedules) == 0)	# column vector to activate modules
+			active = (((t) % self.schedules) == 0)	# column vector to activate modules
 														# for this instant
 			
 			input = np.concatenate([X[t], np.ones((1, B))], axis=0)
@@ -190,7 +190,7 @@ class CRNN_HEIR(Layer):
 			dX = None
 
 		for t in reversed(xrange(T)):
-			active = (((t + 1) % self.schedules) == 0)
+			active = (((t) % self.schedules) == 0)
 
 			input = self.inputs[t]
 			_H_prev = self._H_prevs[t]

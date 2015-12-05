@@ -124,9 +124,9 @@ class CRNN_I(Layer):
 			H_prev = np.concatenate([self.H_0] * B, axis=1)
 
 		for t in xrange(T):
-			active = (((t + 1) % self.schedules) == 0)	# column vector to activate modules
-														# for this instant
-			
+			active = (((t) % self.schedules) == 0)	# column vector to activate modules
+													# for this instant
+
 			input = np.concatenate([X[t], np.ones((1, B))], axis=0)
 			i_h = np.dot(Wi, input)		# input to hidden
 
@@ -134,7 +134,7 @@ class CRNN_I(Layer):
 			h_h = np.dot(Wh, _H_prev)	# hidden to hidden
 
 			h_new = h_h
-			h_new[:nclocks] += i_h
+			h_new[:nstates] += i_h
 			H_new = np.tanh(h_new)
 			
 			H = active * H_new + (1 - active) * H_prev
@@ -190,7 +190,7 @@ class CRNN_I(Layer):
 			dX = None
 
 		for t in reversed(xrange(T)):
-			active = (((t + 1) % self.schedules) == 0)
+			active = (((t) % self.schedules) == 0)
 
 			input = self.inputs[t]
 			_H_prev = self._H_prevs[t]
@@ -213,7 +213,7 @@ class CRNN_I(Layer):
 			dH_new = (1.0 - H_new ** 2) * dH_new
 
 
-			di_h = dH_new[:nclocks]
+			di_h = dH_new[:nstates]
 			dh_h = dH_new
 
 			dWh += np.dot(dh_h, _H_prev.T)
