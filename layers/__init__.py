@@ -4,6 +4,7 @@ from crnn import CRNN
 from rrnn import RRNN
 from crnn_i import CRNN_I
 from crnn_heir import CRNN_HEIR
+from crnn_htm import CRNN_HTM
 from linear import Linear
 from softmax import Softmax
 from dropout import Dropout

@@ -2,7 +2,7 @@ import numpy as np
 
 from layers import *
 from network_tools import *
-from climin import RmsProp, Adam
+from climin import RmsProp, Adam, GradientDescent
 from text import loader
 
 import time
@@ -16,27 +16,29 @@ plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
 plt.clf()
 
-np.random.seed(np.random.randint(1))
+np.random.seed(np.random.randint(1213))
 
-experiment_name = 'crnn_baseline'
+experiment_name = 'crnn_htm_dropout'
 
-text_file = 'enwik8.txt'
+text_file = 'ptb.txt'
 
-periods = [1, 2, 4, 8, 16]
-vocabulary_size = 205
-states = 32				# per clock
-output = 512			# for all clocks
+periods = [2, 4, 8, 16, 32, 64, 128]
+vocabulary_size = 49
+states = 512				# per clock
+output = 2048			# for all clocks
 ninputs = vocabulary_size
 noutputs = vocabulary_size
 
 sequence_length = 128
 
-batch_size = 16
-learning_rate = 1e-3
+batch_size = 32
+learning_rate = 1e-4
 niterations = 20000
 momentum = 0.9
 
-forget_every = 100
+dropout = 0.25
+
+forget_every = 1
 gradient_clip = (-1.0, 1.0)
 
 sample_every = 1000
@@ -44,10 +46,10 @@ save_every = 1000
 plot_every = 100
 
 full_recurrence = False
-learn_state = True
+learn_state = False
 
 anneal = False
-dynamic_forgetting = False
+dynamic_forgetting = True
 
 logs = {}
 
@@ -78,25 +80,34 @@ def dW(W):
 os.system('mkdir results/' + experiment_name)
 path = 'results/' + experiment_name + '/'
 
-config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'ninputs = ' + str(ninputs) + '\n' + 'noutputs = ' + str(noutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'text = ' + str(text_file) + '\n'
-f = open(path + 'config.txt', 'w')
-f.write(config)
-f.close()
-
 logs['loss'] = []
 logs['smooth_loss'] = [np.log(vocabulary_size)]
 logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
 model = [
-			CRNN(ninputs, states, output, periods, full_recurrence, learn_state, first_layer=True),
- 			Linear(output, noutputs),
+			Dropout(dropout),
+			CRNN(vocabulary_size, states, output, periods, full_recurrence, learn_state),
+			Dropout(dropout),
+ 			Linear(output, output),
+ 			Dropout(dropout),
+ 			Linear(output, vocabulary_size),
  			Softmax()
  		]
 
 W = extract_weights(model)
 
-optimizer = Adam(W, dW, 1e-3)
+optimizer = GradientDescent(W, dW, learning_rate, momentum=momentum)
+
+config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'ninputs = ' + str(ninputs) + '\n' + 'noutputs = ' + str(noutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'text = ' + str(text_file) + '\n'
+config += 'optimizer = ' + str(optimizer.__class__.__name__) + '\n' 
+config += 'dropout = ' + str(dropout) + '\n' 
+
+f = open(path + 'config.txt', 'w')
+f.write(config)
+f.close()
+
+print config, 'Approx. Parameters: ', W.size
 
 for i in optimizer:
 	if i['n_iter'] > niterations:
@@ -152,7 +163,6 @@ for i in optimizer:
 		plt.clf()
 		plt.plot(logs['smooth_loss'])
 		plt.draw()
-
 
 print 'serializing logs... '
 f = open(path + 'logs.logs', 'w')
