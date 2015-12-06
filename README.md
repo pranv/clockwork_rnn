@@ -2,7 +2,7 @@
 
 Clockwork RNNs are a set of simple RNNs that run at different clock speeds but share their hidden states and produce a common output. 
 
-Suppose there are `n` RNNs or modules `{RNN1, . . ., RNNn}` and each RNN is assigned a clock period `T ∈ { T1 , . . . , Tn }`. `RNNi` is active only if the current time step `t % Ti == 0` Each RNN is internally fully interconnected, but the recurrent connections from RNNj to RNNi exists only if the period Ti is smaller than period Tj. 
+Suppose there are `n` RNNs or modules `{RNN1, . . ., RNNn}` and each RNN is assigned a clock period `T ∈ { T1 , . . . , Tn }`. `RNNi` is active only if the current time step `t % Ti == 0` Each RNN is internally fully interconnected, but the recurrent connections from `RNNj` to `RNNi` exists only if the period `Ti` is smaller than period `Tj`. 
 
 ## Observations and Modifications
 Intuitively, the slower RNNs (the ones with larger periods) act as shortcut pathways for information and gradients between large number of timesteps. The faster RNNs (the ones with shorter periods) handle short term, local operations. 
