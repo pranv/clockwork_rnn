@@ -17,32 +17,39 @@ This is much better understood in the example context of Language Modelling(LM).
 
 CWRNN are similar to Hierarchical Subsampling Networks (HSNs) and Deep RNNs except that subsampling is done implicity. 
 
+The Deep RNN from Graves 2013 - Generating Sequences with RNNs
+![deeprnn](https://cloud.githubusercontent.com/assets/8753078/11612816/9bddf020-9c2e-11e5-850e-0b50381b6d5b.png)
+
+HSNs are similar to Deep RNNs but RNNs at higher layers subsample the outputs of the layer below, before taking them as inputs. This is done with weighted scheme
+![hsn](https://cloud.githubusercontent.com/assets/8753078/11612818/9c901016-9c2e-11e5-8b7f-8a668afd0cd7.png)
+
 Suppose we have a CWRNN with 6 modules with periods `[1, 2, 4, 8, 16]`. The first module is fully interconnected with all other 5 modules and itself. The remaining modules are connected with themselves completely and every module before them, this gives roughly a combination of Hierarchical Subsampling Networks (HSNs) and Deep RNNs. Note that the connection scheme mentioned for the 4 modules is opposite of what is proposed in the paper. 
+
+By the notations given in the paper, this would mean:
+![depp](https://cloud.githubusercontent.com/assets/8753078/11612805/453c4b86-9c2e-11e5-9b0d-52dbab1c005a.png)
 
 Keeping with the reasons provided in the previous section, we can remove the connections from input to all slower modules. Just providing the input to the first module is sufficient.
 
-The block weight matrix and the hidden state calculation can be represented as:
+Further, if we have symmetric clock rates with the blocks being active in a perticular pattern, such as the one shown below, we could get networks that resemble the Seq2Seq Architectures of Sutskever et al. 
+![seq2seq](https://cloud.githubusercontent.com/assets/8753078/11612806/46e59834-9c2e-11e5-8309-7a93aa72383c.png)
 
+This means that CWRNNs, in a way subsume a wide range of Stacked and Multiscale RNN achitectures.
 
-
-It is now apparent that CWRNN is actually Hierarchical Subsampling Networks  (HSNs). And when the blocks of the recurrent weight matrix form a perticular pattern, they are almost the same thing as seq2seq. 
-With this logic, I have written `crnn_htm.py`. Note - I believe that in if the modules are [1, 2, 4, ...., 64, 1] and  the recurrent weight matrix is the transpose of what is suggested in the paper, then only the first module should take in inputs, and the last module should produce output. This makes it identical to HSNs. 
-
-Here are 2 images that capture the long term properties of original cwrnn vs the modified one:
+The modified recurrent weight matrix supports long term memory. Here are 2 images that capture the long term properties of original cwrnn vs the modified one:
 Both plots are Gradient Norm vs Time Step: 
 
-Modified - HSN like:
-![new](https://cloud.githubusercontent.com/assets/8753078/11609470/456733fe-9bad-11e5-87e4-cdf2d609d896.png)
-
 Original implementation gives:
-![old](https://cloud.githubusercontent.com/assets/8753078/11609493/c3c490c0-9bad-11e5-86ef-eb4f8164bc64.png)
+![grads_old](https://cloud.githubusercontent.com/assets/8753078/11612856/4f2cb75a-9c30-11e5-8ca3-815b43b6698a.png)
 
+Modified - HSN/Deep RNN like:
+![grads_new](https://cloud.githubusercontent.com/assets/8753078/11612855/4e8db6d2-9c30-11e5-82ff-f9ff91520851.png)
 
 #### Other Extensions:
 
 * **Round Robin RNNs**: The fastest modules (usually ones with period 1) are seeing everything. Instead that  can be split up into more modules, such that modules take turns one after that other to be active. This should help with vanishing gradients. **RESULTS**: This is cheating in some sense - it helps in keeping the information, but it as good as using a single RNN and storing the hidden states explicitly at regular intervals.
 * **Dynamic Forgetting during training**: Forget hidden state very frequently during inital stages of training, but extend the period of forgetting over time.
 * **Various Clock Periods**: RESULTS: Not much difference. Exponential series of 2 is fine. 
+* 
 	* Symmetric: Has given best results so far, within 		the original CWRNN model. Maybe due to the reason 		stated above.
 	* Fibonacci (Virahanka)
 	* Different Exponential Series
@@ -56,7 +63,7 @@ Original implementation gives:
 
 Upon studying the gradient norm, it was stupid to start the main clock at 1, instead of 0. Thus all experiments from the past 12 days or more - according to the Github commit is useless.
 
-**Current Best Result**: Single Layer Clockwork RNN with Symmetric Clock Periods, with about 1.3 million parameters, without dropout gave test CE loss of about **1.4**, which equals to about **2 BPC**. Current state of the art, which I belive is the Grid LSTM paper from Google DeepMind reported BPC of **1.47**
+**Current Best Result**: Single Layer Clockwork RNN with Symmetric Clock Periods, with about 1.3 million parameters, without dropout gave test CE loss of about **1.4**, which equals to about **2 BPC**. Current state of the art, which I belive is the Grid LSTM paper from Google DeepMind reported BPC of **1.47**.
 
 
 
