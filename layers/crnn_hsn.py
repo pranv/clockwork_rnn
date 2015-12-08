@@ -23,15 +23,15 @@ def recurrent_mask(nclocks, nstates):
 	return mask
 
 
-def make_schedule(clock_periods, nstates):
+def make_schedule(periods, nstates):
 	sch = []
-	for c in clock_periods:
+	for c in periods:
 		for i in range(nstates):
 			sch.append(c)
 	return sch
 
 class CRNN_HSN(Layer):
-	def __init__(self, dinput, nstates, doutput, clock_periods, full_recurrence=False, learn_state=False, first_layer=False):
+	def __init__(self, dinput, nstates, doutput, periods, full_recurrence=False, learn_state=False, first_layer=False):
 		'''
 
 			Clockwork Recurrent Neural Network
@@ -46,7 +46,7 @@ class CRNN_HSN(Layer):
 			doutput: 
 				required dimension of the output
 			
-			clock_periods: 
+			periods: 
 				the periods of clocks (order is maintained and not sorted)
 			
 			full_recurrence:
@@ -62,9 +62,9 @@ class CRNN_HSN(Layer):
 						are not calculated as it is useless for training. saves time
 				False: gradients w.r.t are calculated and returned
 		''' 
-		nclocks = len(clock_periods)
+		nclocks = len(periods)
 		
-		Wi = random(nclocks, dinput + 1)
+		Wi = random(nstates, dinput + 1)
 		Wh = random(nclocks * nstates, nclocks * nstates + 1)
 		Wo = random(doutput, nclocks * nstates + 1)
 		
@@ -74,14 +74,14 @@ class CRNN_HSN(Layer):
 		Wh[:,:-1] *= mask
 
 		# column vector to selectively activate rows based on time
-		schedules = make_schedule(clock_periods, nstates)
+		schedules = make_schedule(periods, nstates)
 		schedules = np.array(schedules).reshape(-1, 1)
 
 		# store it all
 		self.dinput = dinput
 		self.nstates = nstates
 		self.doutput = doutput
-		self.clock_periods = clock_periods
+		self.periods = periods
 		self.nclocks = nclocks
 		self.Wi = Wi
 		self.Wh = Wh
