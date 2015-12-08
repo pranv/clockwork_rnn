@@ -6,17 +6,20 @@ from utils import random, glorotize, orthogonalize
 
 def recurrent_mask(nclocks, nstates):
 	'''
-		1 1 1     
-		1 1 1
-		0 1 1  
+		1 1 1 1 1
+		1 1 0 0 0
+		0 1 1 0 0
+		0 0 1 1 0
+		0 0 0 1 1
 	'''
-	matrix = []
-	for c in range(nclocks + 1, 0, -1):
-		zero_blocks = np.zeros((nstates, nstates * (nclocks + 1 - c)))		# heirarchy here
-		one_blocks = np.ones((nstates, nstates * (c)))
-		matrix.append(np.concatenate([zero_blocks, one_blocks], axis=1))
-	big_mask = np.concatenate(matrix, axis=0)
-	mask = big_mask[:-nstates, nstates:]
+	matrix = [np.ones((nstates, nstates * (nclocks)))]
+	one_blocks = np.ones((nstates, nstates * (2)))
+	matrix.append(np.concatenate([one_blocks, np.zeros((nstates, nstates * (nclocks - 2)))], axis=1))
+	for c in range(3, nclocks + 1):
+		zero_blocks1 = np.zeros((nstates, nstates * (c - 2)))
+		zero_blocks2 = np.zeros((nstates, nstates * (nclocks - c)))	
+		matrix.append(np.concatenate([zero_blocks1, one_blocks, zero_blocks2], axis=1))
+	mask = np.concatenate(matrix, axis=0)
 	return mask
 
 
@@ -27,13 +30,12 @@ def make_schedule(clock_periods, nstates):
 			sch.append(c)
 	return sch
 
-
-class CRNN_HEIR(Layer):
-	def __init__(self, dinput, nstates, doutput, clock_periods, full_recurrence=False, learn_state=True, first_layer=False):
+class CRNN_HSN(Layer):
+	def __init__(self, dinput, nstates, doutput, clock_periods, full_recurrence=False, learn_state=False, first_layer=False):
 		'''
-			Clockwork Recurrent Neural Network (heirarchial Variant)
-			Variant of CRNN in which the slower module's can be seen by next slowest module
-			rest follows Koutnik et al.
+
+			Clockwork Recurrent Neural Network
+			This follows the variant described in the paper by Koutnik et al.
 
 			dinput: 
 				dimension of the input (per time step)
@@ -60,27 +62,16 @@ class CRNN_HEIR(Layer):
 						are not calculated as it is useless for training. saves time
 				False: gradients w.r.t are calculated and returned
 		''' 
-
 		nclocks = len(clock_periods)
 		
-		Wi = random(nclocks * nstates, dinput + 1)
+		Wi = random(nclocks, dinput + 1)
 		Wh = random(nclocks * nstates, nclocks * nstates + 1)
 		Wo = random(doutput, nclocks * nstates + 1)
 		
-		if learn_state:
-			H_0 = random(nclocks * nstates, 1)
-		else:
-			H_0 = np.zeros((nclocks * nstates, 1))
-
-		# some fancy inits
-		Wi = glorotize(Wi)
-		Wh[:, :-1] = orthogonalize(Wh[:, :-1])
-		Wo = glorotize(Wo)
+		H_0 = np.zeros((nclocks * nstates, 1))
 	
-		# mask to make Wh a block upper triangle matrix
-		utri_mask = recurrent_mask(nclocks, nstates)
-		if not full_recurrence:
-			Wh[:,:-1] *= utri_mask
+		mask = recurrent_mask(nclocks, nstates)
+		Wh[:,:-1] *= mask
 
 		# column vector to selectively activate rows based on time
 		schedules = make_schedule(clock_periods, nstates)
@@ -96,7 +87,7 @@ class CRNN_HEIR(Layer):
 		self.Wh = Wh
 		self.Wo = Wo
 		self.H_0 = H_0
-		self.utri_mask = utri_mask
+		self.mask = mask
 		self.schedules = schedules
 		self.full_recurrence = full_recurrence
 		self.learn_state = learn_state
@@ -122,7 +113,7 @@ class CRNN_HEIR(Layer):
 			# if we didn't explicitly forget, continue with previous states
 			H_prev = self.H_last 
 		else:
-			H_prev = np.concatenate([self.H_0] * B, axis=1)
+			H_prev = np.zeros((nclocks * nstates, B))
 
 		for t in xrange(T):
 			active = (((t) % self.schedules) == 0)	# column vector to activate modules
@@ -134,7 +125,8 @@ class CRNN_HEIR(Layer):
 			_H_prev = np.concatenate([H_prev, np.ones((1, B))], axis=0) 
 			h_h = np.dot(Wh, _H_prev)	# hidden to hidden
 
-			h_new = i_h + h_h
+			h_new = h_h
+			h_new[:nstates] += i_h
 			H_new = np.tanh(h_new)
 			
 			H = active * H_new + (1 - active) * H_prev
@@ -178,10 +170,10 @@ class CRNN_HEIR(Layer):
 		Wh = self.Wh
 		Wo = self.Wo
 		
-		dH_prev = np.zeros((nclocks * nstates, B))
 		dWi = np.zeros_like(Wi)
 		dWh = np.zeros_like(Wh)
 		dWo = np.zeros_like(Wo)
+		dH_prev = np.zeros((nclocks * nstates, B))
 		
 		if not self.first_layer:
 			dX = np.zeros((T, n, B))
@@ -211,26 +203,23 @@ class CRNN_HEIR(Layer):
 
 			dH_new = (1.0 - H_new ** 2) * dH_new
 
-			dWh += np.dot(dH_new, _H_prev.T)
-			dH_prev += np.dot(Wh.T, dH_new)[:-1]
+			di_h = dH_new[:nstates]
+			dh_h = dH_new
 
-			dWi += np.dot(dH_new, input.T)
+			dWh += np.dot(dh_h, _H_prev.T)
+			dH_prev += np.dot(Wh.T, dh_h)[:-1]
+	
+			dWi += np.dot(di_h, input.T)
 
 			if not self.first_layer:
-				dX[t] = np.dot(Wi.T, dH_new)[:-1]
+				dX[t] = np.dot(Wi.T, di_h)[:-1]
 
-		# mask grads, so zeros grads for lower triangle
-		if not self.full_recurrence:
-			dWh[:, :-1] *= self.utri_mask
+
+		dWh[:, :-1] *= self.mask
 
 		self.dWi = dWi
 		self.dWh = dWh
 		self.dWo = dWo
-		
-		if self.learn_state:
-			self.dH_0 = dH_prev.sum(axis=1, keepdims=True)
-		else:
-			self.dH_0 = np.zeros((self.nclocks * self.nstates))
 
 		return dX
 
@@ -244,26 +233,22 @@ class CRNN_HEIR(Layer):
 		Wi = self.Wi.flatten()
 		Wh = self.Wh.flatten()
 		Wo = self.Wo.flatten()
-		H_0 = self.H_0.flatten()
-		return np.concatenate([Wi, Wh, Wo, H_0])
+		return np.concatenate([Wi, Wh, Wo])
 
 	def set_weights(self, W):
-		i, h, o = self.Wi.size, self.Wh.size, self.Wo.size
-		Wi, Wh, Wo, H_0 = np.split(W, [i, i + h, i + h + o])
+		i, h = self.Wi.size, self.Wh.size
+		Wi, Wh, Wo = np.split(W, [i, i + h])
 		self.Wi = Wi.reshape(self.Wi.shape)
 		self.Wh = Wh.reshape(self.Wh.shape)
 		self.Wo = Wo.reshape(self.Wo.shape)
-		self.H_0 = H_0.reshape(self.H_0.shape)
 		
 	def get_grads(self):
 		dWi = self.dWi.flatten()
 		dWh = self.dWh.flatten()
 		dWo = self.dWo.flatten()
-		dH_0 = self.dH_0.flatten()
-		return np.concatenate([dWi, dWh, dWo, dH_0])
+		return np.concatenate([dWi, dWh, dWo])
 
 	def clear_grads(self):
 		self.dWi *= 0
 		self.dWh *= 0
 		self.dWo *= 0
-		self.dH_0 *= 0
