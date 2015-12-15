@@ -62,9 +62,9 @@ class CRNN_I(Layer):
 
 		nclocks = len(clock_periods)
 		
-		Wi = random(nstates, dinput + 1)
-		Wh = random(nclocks * nstates, nclocks * nstates + 1)
-		Wo = random(doutput, nclocks * nstates + 1)
+		Wi = random(nstates, dinput + 1) * 0.01
+		Wh = random(nclocks * nstates, nclocks * nstates + 1) * 0.01
+		Wo = random(doutput, nclocks * nstates + 1) * 0.01
 		
 		if learn_state:
 			H_0 = random(nclocks * nstates, 1)
