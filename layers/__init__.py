@@ -4,6 +4,7 @@ from crnn import CRNN
 from rrnn import RRNN
 from crnn_i import CRNN_I
 from crnn_hsn import CRNN_HSN
+from crnn_hsn_elu import CRNN_HSN_ELU
 from linear import Linear
 from softmax import Softmax
 from dropout import Dropout
