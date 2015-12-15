@@ -20,6 +20,7 @@ def recurrent_mask(nclocks, nstates):
 		zero_blocks2 = np.zeros((nstates, nstates * (nclocks - c)))	
 		matrix.append(np.concatenate([zero_blocks1, one_blocks, zero_blocks2], axis=1))
 	mask = np.concatenate(matrix, axis=0)
+	print 'number subtract: ', mask.size - mask.sum(), '\n\n\n\n'
 	return mask
 
 
@@ -31,7 +32,7 @@ def make_schedule(periods, nstates):
 	return sch
 
 class CRNN_HSN(Layer):
-	def __init__(self, dinput, nstates, doutput, periods, full_recurrence=False, learn_state=False, first_layer=False):
+	def __init__(self, dinput, nstates, doutput, periods, sigma=0.1, first_layer=False, last_state_only=False):
 		'''
 
 			Clockwork Recurrent Neural Network
@@ -49,14 +50,6 @@ class CRNN_HSN(Layer):
 			periods: 
 				the periods of clocks (order is maintained and not sorted)
 			
-			full_recurrence:
-				True: all modules can 'see' the hidden states every module
-				False: as per the original paper - only faster modules can see slower modules
-
-			learn_state:
-				True: initial state is randomly initalized and learnt during training
-				False: start with all zero initial state and don't learn
-
 			first_layer:
 				True: if this is the first layer of the network. If it is, the gradients w.r.t inputs
 						are not calculated as it is useless for training. saves time
@@ -64,9 +57,14 @@ class CRNN_HSN(Layer):
 		''' 
 		nclocks = len(periods)
 		
-		Wi = random(nstates, dinput + 1)
-		Wh = random(nclocks * nstates, nclocks * nstates + 1)
-		Wo = random(doutput, nclocks * nstates + 1)
+		Wi = random(nstates, dinput + 1) * sigma
+		Wh = random(nclocks * nstates, nclocks * nstates + 1) * sigma
+		#Wh = np.zeros((nclocks * nstates, nclocks * nstates + 1))
+		#for i in range(nclocks):
+		#	for j in range(nclocks):
+		#		Wh[i * nstates: (i + 1) * nstates, j * nstates: (j + 1) * nstates] = orthogonalize(random(nstates, nstates))
+
+		Wo = random(doutput, nclocks * nstates + 1) * sigma
 		
 		H_0 = np.zeros((nclocks * nstates, 1))
 	
@@ -89,9 +87,9 @@ class CRNN_HSN(Layer):
 		self.H_0 = H_0
 		self.mask = mask
 		self.schedules = schedules
-		self.full_recurrence = full_recurrence
-		self.learn_state = learn_state
+		self.sigma = sigma
 		self.first_layer = first_layer
+		self.last_state_only = last_state_only
 
 		self.forget()
 
@@ -158,9 +156,17 @@ class CRNN_HSN(Layer):
 		self.n = n
 		self.B = T
 
-		return Ys
+		if self.last_state_only:
+			return Ys[-1:]
+		else:
+			return Ys
 	
 	def backward(self, dY):
+		if self.last_state_only:
+			last_step_error = dY.copy()
+			dY = np.zeros_like(self.Ys)
+			dY[-1:] = last_step_error[:]
+
 		T, _, B = dY.shape
 		n = self.n
 		nclocks = self.nclocks
