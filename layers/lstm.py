@@ -4,15 +4,14 @@ from base import Layer
 from utils import random, glorotize, orthogonalize
 
 class LSTM(Layer):
-	def __init__(self, dinput, nstates, fbias=0.0):
-		W = random(nstates * 4, dinput + nstates + 1)
-		W = glorotize(W)
-		W[0 * nstates: 1 * nstates, dinput:-1] = orthogonalize(W[0 * nstates: 1 * nstates, dinput:-1])
-		W[1 * nstates: 2 * nstates, dinput:-1] = orthogonalize(W[1 * nstates: 2 * nstates, dinput:-1])
-		W[2 * nstates: 3 * nstates, dinput:-1] = orthogonalize(W[2 * nstates: 3 * nstates, dinput:-1])
-		W[3 * nstates: 4 * nstates, dinput:-1] = orthogonalize(W[3 * nstates: 4 * nstates, dinput:])
-		W[:, -1] = 0 								# initialize all biases to zero
-		W[2 * nstates : 3 * nstates, -1] = fbias		# fancy forget bias
+	def __init__(self, dinput, nstates, sigma=0.1,fbias=0.0, last_state_only=False):
+		W = random(nstates * 4, dinput + nstates + 1) * 0.1
+		W[0 * nstates: 1 * nstates, dinput:-1] = orthogonalize(random(nstates, nstates))
+		W[1 * nstates: 2 * nstates, dinput:-1] = orthogonalize(random(nstates, nstates))
+		W[2 * nstates: 3 * nstates, dinput:-1] = orthogonalize(random(nstates, nstates))
+		W[3 * nstates: 4 * nstates, dinput:-1] = orthogonalize(random(nstates, nstates))
+		W[:, -1] = 0 									# initialize all biases to zero
+		W[2 * nstates : 3 * nstates, -1] = fbias		# forget bias
 		self.W = W
 
 		self.c_0 = np.zeros((nstates, 1))
@@ -20,6 +19,7 @@ class LSTM(Layer):
 
 		self.dinput = dinput
 		self.nstates = nstates
+		self.last_state_only = last_state_only
 
 		self.forget()
 	
@@ -79,10 +79,20 @@ class LSTM(Layer):
 		self.Y_start = Y_start
 		self.c_T = c
 		self.Y_T = Y
+		self.Ys = Ys
 
-		return Ys
+		if self.last_state_only:
+			return Ys[-1:]
+		else:
+			return Ys
 
 	def backward(self, dY):
+		
+		if self.last_state_only:
+			last_step_error = dY.copy()
+			dY = np.zeros_like(self.Ys)
+			dY[-1:] = last_step_error[:]
+
 		T, _, B = dY.shape
 		h = self.nstates
 		dinput = self.dinput
