@@ -10,7 +10,7 @@ batch_size = 100
 
 data = loader(batch_size=batch_size)
 
-f = open('results/hsn_seq_mnist_elu/final.model', 'r')
+f = open('results/scrnn_mnist/iter_2000.model', 'r')
 model = pickle.load(f)
 f.close()
 

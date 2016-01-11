@@ -14,25 +14,24 @@ import matplotlib.pyplot as plt
 plt.ion()
 plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
+plt.clf()
 
 np.random.seed(np.random.randint(1213))
 
-experiment_name = 'mnist_stochasitic_timer'
+experiment_name = 'rnn_seq_mnist_baseline'
 
-permuted = False
-
-periods = [1, 2, 4, 9, 29, 87, 261]
-states = 16
+periods = [1, 1]
+states = 50
 doutput = 10
 dinput = 1
 sigma = 0.1
 
 batch_size = 50
-learning_rate = 1e-3
+learning_rate = 1e-2
 niterations = 25000
-momentum = 0.90
+momentum = 0.9
 
-dropout = 0.00
+dropout = 0.10
 
 gradient_clip = (-1.0, 1.0)
 
@@ -41,7 +40,7 @@ plot_every = 100
 
 logs = {}
 
-data = loader(batch_size=batch_size, permuted=permuted)
+data = loader(batch_size=batch_size)
 
 def dW(W):
 	load_weights(model, W)
@@ -78,14 +77,12 @@ logs['clipped_gradient_norm'] = []
 
 
 model = [
-			Dropout(dropout),
-			CRNN_HSN(dinput, states, doutput, sigma=sigma, periods=periods, last_state_only=True, first_layer=True),
+			CRNN_HSN(dinput, states, doutput, sigma=sigma, periods=periods, last_state_only=True),
 			Linear(doutput, 10),
  			Softmax()
  		]
 
 '''
-# baseline purposes
 model = [
 			Dropout(dropout),
 			LSTM(1, states, sigma=sigma, fbias=1.5, last_state_only=True),
@@ -123,32 +120,8 @@ for i in optimizer:
 		logs['val_loss'].append(val_loss)
 		print '..' * 20
 		print 'validation loss: ', val_loss
-
-		# remove dropout
-		model1 = model[1:]
-
-		inputs, labels = data.fetch_test()
-		nsamples = inputs.shape[2]
-		inputs = np.split(inputs, nsamples / batch_size, axis=2)
-		labels = np.split(labels, nsamples / batch_size, axis=2)
-
-		correct = 0
-		for j in range(len(inputs)):
-			forget(model1)
-			input = inputs[j]
-			label = labels[j]
-			pred = forward(model1, input)
-			good = np.sum(label.argmax(axis=1) == pred.argmax(axis=1))
-			correct += good
-
-		correct /= float(nsamples)
-
-		print 'accuracy: ', correct * 100
 		print '..' * 20
-		
 		data.epoch_complete = False
-
-
 
 	if i['n_iter'] % save_every == 0:
 		print 'serializing model... '

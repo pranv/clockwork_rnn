@@ -25,7 +25,11 @@ class loader(object):
 		X_test = X_test.swapaxes(0, 1).swapaxes(1, 2)
 
 		if permuted:
-			pass
+			p = range(28*28)
+			np.random.shuffle(p)
+			X_train = X_train[p]
+			X_val = X_val[p]
+			X_test = X_test[p]
 
 		self.i = 0
 

@@ -1,3 +1,6 @@
+# use larger learning rate for PTB
+
+
 import numpy as np
 
 from layers import *
@@ -18,27 +21,27 @@ plt.clf()
 
 np.random.seed(np.random.randint(1213))
 
-experiment_name = 'crnn_htm_dropout'
+experiment_name = 'lstm_dropout'
 
 text_file = 'ptb.txt'
 
-periods = [2, 4, 8, 16, 32, 64, 128]
+periods = [1, 2, 10, 100]
 vocabulary_size = 49
 states = 512				# per clock
-output = 2048			# for all clocks
-ninputs = vocabulary_size
-noutputs = vocabulary_size
+output = 512				# for all clocks
+dinput = vocabulary_size
+doutputs = vocabulary_size
 
-sequence_length = 128
+sequence_length = 30
 
-batch_size = 32
-learning_rate = 1e-4
-niterations = 20000
+batch_size = 20
+learning_rate = 5e-3
+niterations = 10000
 momentum = 0.9
 
-dropout = 0.25
+dropout = 0.1
 
-forget_every = 1
+forget_every = 100
 gradient_clip = (-1.0, 1.0)
 
 sample_every = 1000
@@ -48,8 +51,10 @@ plot_every = 100
 full_recurrence = False
 learn_state = False
 
-anneal = False
-dynamic_forgetting = True
+anneal = True
+dynamic_forgetting = False
+
+dynamic_mom = False
 
 logs = {}
 
@@ -85,21 +90,30 @@ logs['smooth_loss'] = [np.log(vocabulary_size)]
 logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
+'''
 model = [
 			Dropout(dropout),
-			CRNN(vocabulary_size, states, output, periods, full_recurrence, learn_state),
+			CRNN_HSN(dinput, states, output, periods=periods, first_layer=True, sigma=0.1),
 			Dropout(dropout),
- 			Linear(output, output),
- 			Dropout(dropout),
- 			Linear(output, vocabulary_size),
+			CRNN_HSN(output, states, output, periods=periods, sigma=0.1),
+ 			Linear(output, doutputs),
+ 			Softmax()
+ 		]
+'''
+model = [
+			Dropout(dropout),
+			LSTM(dinput, states, fbias=0.0, sigma=0.1),
+			Dropout(dropout),
+			LSTM(states, states, fbias=0.0, sigma=0.1),
+ 			Linear(states, doutputs),
  			Softmax()
  		]
 
 W = extract_weights(model)
 
-optimizer = GradientDescent(W, dW, learning_rate, momentum=momentum)
+optimizer = Adam(W, dW, learning_rate, momentum=momentum)
 
-config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'ninputs = ' + str(ninputs) + '\n' + 'noutputs = ' + str(noutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'text = ' + str(text_file) + '\n'
+config = 'experiment_name = ' + str(experiment_name) + '\n' + 'periods = ' + str(periods) + '\n' + 'vocabulary_size = ' + str(vocabulary_size) + '\n' + 'states = ' + str(states) + '\n' + 'output = ' + str(output) + '\n' + 'dinput = ' + str(dinput) + '\n' + 'doutputs = ' + str(doutputs) + '\n' + 'sequence_length = ' + str(sequence_length) + '\n' + 'batch_size = ' + str(batch_size) + '\n' + 'learning_rate = ' + str(learning_rate) + '\n' + 'niterations = ' + str(niterations) + '\n' + 'momentum = ' + str(momentum) + '\n' + 'forget_every = ' + str(forget_every) + '\n' + 'gradient_clip = ' + str(gradient_clip) + '\n' + 'sample_every = ' + str(sample_every) + '\n' + 'save_every = ' + str(save_every) + '\n' + 'plot_every = ' + str(plot_every) + '\n' + 'full_recurrence = ' + str(full_recurrence) + '\n' + 'learn_state = ' + str(learn_state) + '\n' + 'anneal = ' + str(anneal) + '\n' + 'dynamic_forgetting = ' + str(dynamic_forgetting) + '\n' + 'text = ' + str(text_file) + '\n'
 config += 'optimizer = ' + str(optimizer.__class__.__name__) + '\n' 
 config += 'dropout = ' + str(dropout) + '\n' 
 
@@ -120,13 +134,17 @@ for i in optimizer:
 	if i['n_iter'] % forget_every == 0:
 		forget(model)
 
+	if dynamic_mom:
+		if i['n_iter'] > 100:
+			optimizer.momentum = 0.9
+
 	if dynamic_forgetting:
 		if i['n_iter'] > 100:
-			forget_every = 10
+			forget_every = 50
 		if i['n_iter'] > 1000:
-			forget_every = 100
+			forget_every = 500
 		if i['n_iter'] > 10000:
-			forget_every = 1000
+			forget_every = 5000
 
 	if i['n_iter'] % sample_every == 0:
 		forget(model)
@@ -148,9 +166,9 @@ for i in optimizer:
 		forget(model)
 
 	if anneal:
-		if i['n_iter'] > 2000:
+		if i['n_iter'] > 4000:
 			optimizer.step_rate *= 0.1
-		elif i['n_iter'] > 3000:
+		elif i['n_iter'] > 6000:
 			optimizer.step_rate *=  0.1
 	
 	if i['n_iter'] % save_every == 0:

@@ -1,17 +1,16 @@
 import numpy as np
 
-from crnn_hsn import CRNN_HSN as CRNN
+from scwrnn2 import SCWRNN2 as CRNN
 
 def test_CRNN():
 	
 	T = 10
 	batch_size = 2
 	nstates = 3
-	input_size = 4
-	output_size = 6
-	clock_rates = [1, 2, 4]
+	input_size = 5
+	output_size = 7
 
-	unit = CRNN(input_size, nstates, output_size, clock_rates, True)
+	unit = CRNN(dinput=input_size, nstates=nstates, clocks=[1, 2, 4, 16], doutput=output_size)
 
 	W = unit.get_weights()
 
@@ -76,7 +75,7 @@ def test_CRNN():
 	if error_count == 0:
 		print 'CRNN Gradient Check Passed'
 	else:
-		print 'Failed for {} parameters'.format(error_count)
+		print 'Failed for {} parameters'.format(error_count), W.size,  X.size
 
 
 test_CRNN()

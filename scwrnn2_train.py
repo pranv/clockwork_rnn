@@ -14,20 +14,22 @@ import matplotlib.pyplot as plt
 plt.ion()
 plt.style.use('kosh')
 plt.figure(figsize=(12, 7))
+plt.clf()
 
 np.random.seed(np.random.randint(1213))
 
-experiment_name = 'mnist_stochasitic_timer'
+experiment_name = 'scrnn_mnist'
 
 permuted = False
 
-periods = [1, 2, 4, 9, 29, 87, 261]
+clocks = [1, 2, 4, 9, 29, 87, 261]
 states = 16
+output = 128
 doutput = 10
 dinput = 1
 sigma = 0.1
 
-batch_size = 50
+batch_size = 16
 learning_rate = 1e-3
 niterations = 25000
 momentum = 0.90
@@ -79,20 +81,11 @@ logs['clipped_gradient_norm'] = []
 
 model = [
 			Dropout(dropout),
-			CRNN_HSN(dinput, states, doutput, sigma=sigma, periods=periods, last_state_only=True, first_layer=True),
-			Linear(doutput, 10),
+			SCWRNN2(dinput=dinput, nstates=states, clocks=clocks, doutput=output, sigma=sigma),
+			Linear(output, doutput),
  			Softmax()
  		]
 
-'''
-# baseline purposes
-model = [
-			Dropout(dropout),
-			LSTM(1, states, sigma=sigma, fbias=1.5, last_state_only=True),
-			Linear(states, 10),
- 			Softmax()
- 		]
-'''
 W = extract_weights(model)
 
 optimizer = Adam(W, dW, learning_rate, momentum=momentum)
@@ -159,7 +152,7 @@ for i in optimizer:
 	if i['n_iter'] % plot_every == 0:
 		plt.clf()
 		plt.plot(logs['smooth_loss'], label='training')
-		#plt.plot(logs['val_loss'], label='validation')
+		plt.plot(logs['val_loss'], label='validation')
 		plt.legend()
 		plt.draw()
 

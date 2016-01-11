@@ -21,13 +21,15 @@ def recurrent_mask(nclocks, nstates):
 		matrix.append(np.concatenate([zero_blocks1, one_blocks, zero_blocks2], axis=1))
 	mask = np.concatenate(matrix, axis=0)
 	print 'number subtract: ', mask.size - mask.sum(), '\n\n\n\n'
+	mask = np.ones_like(mask)
 	return mask
 
 
 def make_schedule(periods, nstates):
 	sch = []
 	for c in periods:
-		for i in range(nstates):
+		#for i in range(nstates):
+		for i in range(1):
 			sch.append(c)
 	return sch
 
@@ -74,6 +76,7 @@ class CRNN_HSN(Layer):
 		# column vector to selectively activate rows based on time
 		schedules = make_schedule(periods, nstates)
 		schedules = np.array(schedules).reshape(-1, 1)
+		schedules = 1.0 / schedules
 
 		# store it all
 		self.dinput = dinput
@@ -113,9 +116,18 @@ class CRNN_HSN(Layer):
 		else:
 			H_prev = np.zeros((nclocks * nstates, B))
 
+		actives = []
+		for ni in range(nclocks):
+			a = np.random.binomial(1, self.schedules[ni], (T, 1))
+			a = a.repeat(nstates, axis=1)
+			actives.append(a)
+
+		actives = np.concatenate(actives, axis=1)
+
 		for t in xrange(T):
-			active = (((t) % self.schedules) == 0)	# column vector to activate modules
+			#active = (((t) % self.schedules) == 0)	# column vector to activate modules
 														# for this instant
+			active = actives[t:t+1].T
 			
 			input = np.concatenate([X[t], np.ones((1, B))], axis=0)
 			i_h = np.dot(Wi, input)		# input to hidden
@@ -145,6 +157,7 @@ class CRNN_HSN(Layer):
 			_Hs[t] = _H; 
 			Ys[t] = Y
 		
+		self.actives = actives
 		self.inputs = inputs
 		self._H_prevs = _H_prevs
 		self.H_news = H_news
@@ -187,7 +200,8 @@ class CRNN_HSN(Layer):
 			dX = None
 
 		for t in reversed(xrange(T)):
-			active = (((t) % self.schedules) == 0)
+			#active = (((t) % self.schedules) == 0)
+			active = self.actives[t:t+1].T
 
 			input = self.inputs[t]
 			_H_prev = self._H_prevs[t]
