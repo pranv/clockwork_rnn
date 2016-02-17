@@ -10,3 +10,5 @@ from crnn_hsn_elu import CRNN_HSN_ELU
 from linear import Linear
 from softmax import Softmax
 from dropout import Dropout
+
+from new_gid import GID

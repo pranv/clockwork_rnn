@@ -17,22 +17,23 @@ plt.figure(figsize=(12, 7))
 
 np.random.seed(np.random.randint(1213))
 
-experiment_name = 'mnist_stochasitic_timer'
+experiment_name = 'mnist_fuck'
 
 permuted = False
 
-periods = [1, 2, 4, 9, 29, 87, 261]
-states = 16
+#periods = [1, 2, 4, 9, 29, 87, 261]
+nstates = 128
 doutput = 10
 dinput = 1
 sigma = 0.1
+ngroups = 8
 
 batch_size = 50
 learning_rate = 1e-3
-niterations = 25000
+niterations = 20000
 momentum = 0.90
 
-dropout = 0.00
+dropout = 0.10
 
 gradient_clip = (-1.0, 1.0)
 
@@ -76,10 +77,10 @@ logs['smooth_loss'] = [np.log(doutput)]
 logs['gradient_norm'] = []
 logs['clipped_gradient_norm'] = []
 
-
+'''
 model = [
 			Dropout(dropout),
-			CRNN_HSN(dinput, states, doutput, sigma=sigma, periods=periods, last_state_only=True, first_layer=True),
+			GID(dinput, nstates, doutput, sigma=sigma, ngroups=ngroups, last_state_only=True, first_layer=True),
 			Linear(doutput, 10),
  			Softmax()
  		]
@@ -88,11 +89,11 @@ model = [
 # baseline purposes
 model = [
 			Dropout(dropout),
-			LSTM(1, states, sigma=sigma, fbias=1.5, last_state_only=True),
-			Linear(states, 10),
+			LSTM(1, nstates, sigma=sigma, fbias=1.5, last_state_only=True),
+			Linear(nstates, 10),
  			Softmax()
  		]
-'''
+
 W = extract_weights(model)
 
 optimizer = Adam(W, dW, learning_rate, momentum=momentum)
